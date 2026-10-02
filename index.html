@@ -8,19 +8,39 @@
 </head>
 <body>
   <div id="app">
-    <div id="storage-warning" class="storage-warning" hidden></div>
+    <div id="storage-warning" class="storage-warning" role="alert" hidden>저장되지 않습니다. 새로고침하면 사라집니다.</div>
 
     <header class="header">
       <h1>할 일 관리</h1>
     </header>
 
-    <section id="progress" class="progress" aria-label="진행률"></section>
+    <section id="progress" class="progress" aria-label="진행률">
+      <p id="progress-text" class="progress-text"></p>
+      <div class="bar" aria-hidden="true"><div id="progress-bar" class="bar-fill"></div></div>
+      <ul id="category-progress" class="category-progress"></ul>
+    </section>
 
-    <form id="add-form" class="add-form"></form>
+    <form id="add-form" class="add-form">
+      <input id="new-title" class="new-title" type="text" maxlength="100" placeholder="할 일을 입력하세요" aria-label="할 일 제목" autocomplete="off">
+      <div class="add-controls">
+        <select id="new-category" class="category-select" aria-label="카테고리">
+          <option value="work">업무</option>
+          <option value="personal">개인</option>
+          <option value="study">공부</option>
+        </select>
+        <button type="submit" class="add-btn">추가</button>
+      </div>
+    </form>
 
-    <nav id="filters" class="filters" aria-label="카테고리 필터"></nav>
+    <div id="filters" class="filters" role="tablist" aria-label="카테고리 필터">
+      <button type="button" role="tab" class="filter" data-filter="all">전체</button>
+      <button type="button" role="tab" class="filter" data-filter="work">업무</button>
+      <button type="button" role="tab" class="filter" data-filter="personal">개인</button>
+      <button type="button" role="tab" class="filter" data-filter="study">공부</button>
+    </div>
 
     <ul id="todo-list" class="todo-list"></ul>
+    <p id="empty-message" class="empty-message" hidden></p>
 
     <footer class="footer">
       <button type="button" id="clear-completed" class="clear-completed">완료 항목 지우기</button>
