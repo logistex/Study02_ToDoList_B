@@ -236,7 +236,33 @@ function renderTodoItem(todo) {
   return li;
 }
 
+const FOCUSABLE_ROLES = ['toggle', 'edit-btn', 'delete-btn'];
+
+// 다시 그리기 전에 목록 안에서 포커스가 있던 컨트롤을 기억한다.
+function captureListFocus() {
+  const active = document.activeElement;
+  const li = active && active.closest ? active.closest('#todo-list .todo-item') : null;
+  if (!li) return null;
+  return {
+    id: li.dataset.id,
+    // 수정 입력창에서 저장·취소한 경우 그 항목의 수정 버튼으로 돌아간다.
+    role: FOCUSABLE_ROLES.find((role) => active.classList.contains(role)) || 'edit-btn',
+    index: Array.prototype.indexOf.call(li.parentNode.children, li),
+  };
+}
+
+// 같은 항목의 같은 컨트롤로, 항목이 사라졌으면 그 자리의 다음 항목으로, 그마저 없으면 입력창으로 포커스를 돌린다.
+function restoreListFocus(saved) {
+  if (!saved) return;
+  const items = Array.from(document.getElementById('todo-list').children);
+  const target = items.find((li) => li.dataset.id === saved.id) || items[saved.index] || items[items.length - 1];
+  const control = target ? target.querySelector('.' + saved.role) : null;
+  (control || document.getElementById('new-title')).focus();
+}
+
 function render() {
+  const savedFocus = captureListFocus();
+
   document.getElementById('storage-warning').hidden = isStorageAvailable();
 
   renderProgress(getProgress(state.todos));
@@ -257,9 +283,13 @@ function render() {
   document.getElementById('clear-completed').disabled = !state.todos.some((todo) => todo.completed);
 
   const editInput = list.querySelector('.edit-title');
-  if (editInput && document.activeElement !== editInput) {
-    editInput.focus();
-    editInput.select();
+  if (editInput) {
+    if (document.activeElement !== editInput) {
+      editInput.focus();
+      editInput.select();
+    }
+  } else {
+    restoreListFocus(savedFocus);
   }
 }
 
