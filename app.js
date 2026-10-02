@@ -10,6 +10,74 @@ const STORAGE_KEY = 'todos.v1';
 const FILTER_KEY = 'todos.filter';
 
 const MAX_TITLE_LENGTH = 100;
+const FILTERS = ['all'].concat(Object.keys(CATEGORIES));
+
+// ===== 저장소 =====
+
+let storageAvailable = true;
+
+function readStorage(key) {
+  try {
+    const value = localStorage.getItem(key);
+    storageAvailable = true;
+    return value;
+  } catch (e) {
+    storageAvailable = false;
+    console.warn('localStorage를 읽을 수 없습니다.', e);
+    return null;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    storageAvailable = true;
+  } catch (e) {
+    storageAvailable = false;
+    console.warn('localStorage에 저장할 수 없습니다.', e);
+  }
+}
+
+function isStorageAvailable() {
+  return storageAvailable;
+}
+
+function isValidTodo(todo) {
+  return Boolean(todo) &&
+    typeof todo.id === 'string' &&
+    typeof todo.title === 'string' &&
+    todo.title.trim().length > 0 &&
+    todo.title.trim().length <= MAX_TITLE_LENGTH &&
+    Boolean(CATEGORIES[todo.category]) &&
+    typeof todo.completed === 'boolean' &&
+    typeof todo.createdAt === 'string';
+}
+
+function loadTodos() {
+  const raw = readStorage(STORAGE_KEY);
+  if (raw === null) return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.warn('저장된 할 일 데이터가 손상되어 빈 목록으로 시작합니다.', e);
+    return [];
+  }
+  return Array.isArray(parsed) ? parsed.filter(isValidTodo) : [];
+}
+
+function saveTodos(todos) {
+  writeStorage(STORAGE_KEY, JSON.stringify(todos));
+}
+
+function loadFilter() {
+  const value = readStorage(FILTER_KEY);
+  return FILTERS.includes(value) ? value : 'all';
+}
+
+function saveFilter(filter) {
+  writeStorage(FILTER_KEY, filter);
+}
 
 // ===== 상태 변경 =====
 

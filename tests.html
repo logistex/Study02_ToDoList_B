@@ -258,6 +258,105 @@
       assertEqual(sample.map((t) => t.id), before);
     });
 
+    // ===== 저장소 =====
+
+    function storageTest(name, fn) {
+      test(name, () => {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(FILTER_KEY);
+        try {
+          fn();
+        } finally {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(FILTER_KEY);
+        }
+      });
+    }
+
+    function withConsoleWarnMuted(fn) {
+      const original = console.warn;
+      console.warn = () => {};
+      try {
+        fn();
+      } finally {
+        console.warn = original;
+      }
+    }
+
+    storageTest('loadTodos: 저장된 값이 없으면 빈 배열을 반환한다', () => {
+      assertEqual(loadTodos(), []);
+    });
+
+    storageTest('saveTodos → loadTodos: 저장한 배열을 그대로 읽는다', () => {
+      const todos = [makeTodo({ id: 'a' }), makeTodo({ id: 'b', completed: true, category: 'study' })];
+      saveTodos(todos);
+      assertEqual(loadTodos(), todos);
+    });
+
+    storageTest('loadTodos: 깨진 JSON이면 빈 배열을 반환한다', () => {
+      localStorage.setItem(STORAGE_KEY, '{not json');
+      withConsoleWarnMuted(() => assertEqual(loadTodos(), []));
+    });
+
+    storageTest('loadTodos: 배열이 아니면 빈 배열을 반환한다', () => {
+      localStorage.setItem(STORAGE_KEY, '{"id":"a"}');
+      assertEqual(loadTodos(), []);
+    });
+
+    storageTest('loadTodos: 잘못된 항목만 건너뛰고 나머지는 불러온다', () => {
+      const good = makeTodo({ id: 'good' });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([
+        good,
+        makeTodo({ id: 'bad-category', category: 'hobby' }),
+        makeTodo({ id: 'empty-title', title: '   ' }),
+        makeTodo({ id: 'long-title', title: 'a'.repeat(101) }),
+        makeTodo({ id: 'bad-completed', completed: 'yes' }),
+        makeTodo({ id: 123 }),
+        makeTodo({ id: 'no-date', createdAt: undefined }),
+        null,
+        '문자열',
+      ]));
+      assertEqual(loadTodos(), [good]);
+    });
+
+    storageTest('loadFilter: 저장된 값이 없으면 "all"을 반환한다', () => {
+      assertEqual(loadFilter(), 'all');
+    });
+
+    storageTest('saveFilter → loadFilter: 저장한 필터를 그대로 읽는다', () => {
+      saveFilter('study');
+      assertEqual(loadFilter(), 'study');
+    });
+
+    storageTest('loadFilter: 허용되지 않은 값이면 "all"을 반환한다', () => {
+      localStorage.setItem(FILTER_KEY, 'hobby');
+      assertEqual(loadFilter(), 'all');
+    });
+
+    storageTest('저장소 접근이 예외를 던지면 기본값을 쓰고 isStorageAvailable()이 false가 된다', () => {
+      const originalGet = Storage.prototype.getItem;
+      const originalSet = Storage.prototype.setItem;
+      Storage.prototype.getItem = () => { throw new Error('blocked'); };
+      Storage.prototype.setItem = () => { throw new Error('blocked'); };
+      try {
+        withConsoleWarnMuted(() => {
+          saveTodos([makeTodo()]);
+          saveFilter('work');
+          assertEqual(loadTodos(), []);
+          assertEqual(loadFilter(), 'all');
+        });
+        assertEqual(isStorageAvailable(), false);
+      } finally {
+        Storage.prototype.getItem = originalGet;
+        Storage.prototype.setItem = originalSet;
+      }
+    });
+
+    storageTest('저장소가 다시 정상이면 isStorageAvailable()이 true가 된다', () => {
+      saveTodos([]);
+      assertEqual(isStorageAvailable(), true);
+    });
+
     // ===== 결과 출력 =====
 
     const list = document.getElementById('results');
