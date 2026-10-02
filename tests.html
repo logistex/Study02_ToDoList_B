@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>할 일 관리 — 테스트</title>
+  <style>
+    body { font-family: system-ui, "Malgun Gothic", sans-serif; padding: 16px; }
+    .pass { color: #15803d; }
+    .fail { color: #b91c1c; }
+    #summary { font-weight: 600; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>테스트 결과</h1>
+  <ul id="results"></ul>
+  <p id="summary"></p>
+
+  <script src="app.js"></script>
+  <script>
+    const results = [];
+
+    function test(name, fn) {
+      try {
+        fn();
+        results.push({ name, ok: true });
+      } catch (e) {
+        results.push({ name, ok: false, message: e.message });
+      }
+    }
+
+    function assertEqual(actual, expected) {
+      const a = JSON.stringify(actual);
+      const b = JSON.stringify(expected);
+      if (a !== b) throw new Error(b + ' vs ' + a);
+    }
+
+    // ===== 상수 =====
+
+    test('CATEGORIES에 work, personal, study 3개가 있다', () => {
+      assertEqual(Object.keys(CATEGORIES), ['work', 'personal', 'study']);
+    });
+
+    // ===== 결과 출력 =====
+
+    const list = document.getElementById('results');
+    results.forEach((r) => {
+      const li = document.createElement('li');
+      li.className = r.ok ? 'pass' : 'fail';
+      li.textContent = r.ok ? '✔ ' + r.name : '✘ ' + r.name + ' — 기대값 vs 실제값: ' + r.message;
+      list.appendChild(li);
+    });
+    const passed = results.filter((r) => r.ok).length;
+    document.getElementById('summary').textContent = '통과 ' + passed + ' / 전체 ' + results.length;
+  </script>
+</body>
+</html>

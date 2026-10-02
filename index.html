@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>할 일 관리</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="storage-warning" class="storage-warning" hidden></div>
+
+    <header class="header">
+      <h1>할 일 관리</h1>
+    </header>
+
+    <section id="progress" class="progress" aria-label="진행률"></section>
+
+    <form id="add-form" class="add-form"></form>
+
+    <nav id="filters" class="filters" aria-label="카테고리 필터"></nav>
+
+    <ul id="todo-list" class="todo-list"></ul>
+
+    <footer class="footer">
+      <button type="button" id="clear-completed" class="clear-completed">완료 항목 지우기</button>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
