@@ -41,6 +41,223 @@
       assertEqual(Object.keys(CATEGORIES), ['work', 'personal', 'study']);
     });
 
+    // ===== 테스트 도우미 =====
+
+    function makeTodo(overrides) {
+      return Object.assign({
+        id: '1',
+        title: '할 일',
+        category: 'work',
+        completed: false,
+        createdAt: '2026-10-02T09:00:00.000Z',
+      }, overrides);
+    }
+
+    // ===== addTodo =====
+
+    test('addTodo: 새 할 일을 끝에 추가한다', () => {
+      const result = addTodo([makeTodo({ id: 'a' })], '보고서 작성', 'study');
+      assertEqual(result.length, 2);
+      assertEqual(result[1].title, '보고서 작성');
+      assertEqual(result[1].category, 'study');
+      assertEqual(result[1].completed, false);
+    });
+
+    test('addTodo: 새 할 일에 문자열 id와 ISO createdAt이 있다', () => {
+      const todo = addTodo([], '보고서', 'work')[0];
+      assertEqual(typeof todo.id, 'string');
+      assertEqual(/^\d+-[a-z0-9]{4}$/.test(todo.id), true);
+      assertEqual(new Date(todo.createdAt).toISOString(), todo.createdAt);
+    });
+
+    test('addTodo: 제목의 앞뒤 공백을 제거한다', () => {
+      assertEqual(addTodo([], '  보고서  ', 'work')[0].title, '보고서');
+    });
+
+    test('addTodo: 빈 제목이면 원래 배열을 그대로 반환한다', () => {
+      const todos = [makeTodo()];
+      assertEqual(addTodo(todos, '', 'work') === todos, true);
+    });
+
+    test('addTodo: 공백뿐인 제목이면 원래 배열을 그대로 반환한다', () => {
+      const todos = [makeTodo()];
+      assertEqual(addTodo(todos, '   ', 'work') === todos, true);
+    });
+
+    test('addTodo: 100자 제목은 추가하고 101자 제목은 무시한다', () => {
+      assertEqual(addTodo([], 'a'.repeat(100), 'work').length, 1);
+      assertEqual(addTodo([], 'a'.repeat(101), 'work').length, 0);
+    });
+
+    test('addTodo: 알 수 없는 카테고리면 원래 배열을 그대로 반환한다', () => {
+      const todos = [];
+      assertEqual(addTodo(todos, '보고서', 'hobby') === todos, true);
+    });
+
+    test('addTodo: 원본 배열을 변경하지 않는다', () => {
+      const todos = [makeTodo()];
+      addTodo(todos, '보고서', 'work');
+      assertEqual(todos.length, 1);
+    });
+
+    // ===== updateTodo =====
+
+    test('updateTodo: 제목을 바꾸고 앞뒤 공백을 제거한다', () => {
+      const result = updateTodo([makeTodo({ id: 'a' })], 'a', { title: '  새 제목 ' });
+      assertEqual(result[0].title, '새 제목');
+    });
+
+    test('updateTodo: 카테고리를 바꾼다', () => {
+      const result = updateTodo([makeTodo({ id: 'a' })], 'a', { category: 'personal' });
+      assertEqual(result[0].category, 'personal');
+    });
+
+    test('updateTodo: 공백뿐인 제목이면 제목은 그대로 두고 카테고리만 바꾼다', () => {
+      const result = updateTodo([makeTodo({ id: 'a', title: '원래' })], 'a', { title: '  ', category: 'study' });
+      assertEqual(result[0].title, '원래');
+      assertEqual(result[0].category, 'study');
+    });
+
+    test('updateTodo: 100자를 넘는 제목이면 제목을 바꾸지 않는다', () => {
+      const result = updateTodo([makeTodo({ id: 'a', title: '원래' })], 'a', { title: 'a'.repeat(101) });
+      assertEqual(result[0].title, '원래');
+    });
+
+    test('updateTodo: 알 수 없는 카테고리면 카테고리를 바꾸지 않는다', () => {
+      const result = updateTodo([makeTodo({ id: 'a' })], 'a', { category: 'hobby' });
+      assertEqual(result[0].category, 'work');
+    });
+
+    test('updateTodo: 없는 id면 원래 배열을 그대로 반환한다', () => {
+      const todos = [makeTodo({ id: 'a' })];
+      assertEqual(updateTodo(todos, 'zzz', { title: '새 제목' }) === todos, true);
+    });
+
+    test('updateTodo: 다른 항목과 원본 객체를 변경하지 않는다', () => {
+      const a = makeTodo({ id: 'a', title: 'A' });
+      const b = makeTodo({ id: 'b', title: 'B' });
+      const result = updateTodo([a, b], 'a', { title: '새 A' });
+      assertEqual(a.title, 'A');
+      assertEqual(result[1] === b, true);
+    });
+
+    // ===== toggleTodo =====
+
+    test('toggleTodo: 미완료를 완료로, 완료를 미완료로 바꾼다', () => {
+      const once = toggleTodo([makeTodo({ id: 'a' })], 'a');
+      assertEqual(once[0].completed, true);
+      assertEqual(toggleTodo(once, 'a')[0].completed, false);
+    });
+
+    test('toggleTodo: 대상만 바꾸고 원본 객체는 변경하지 않는다', () => {
+      const a = makeTodo({ id: 'a' });
+      const b = makeTodo({ id: 'b' });
+      const result = toggleTodo([a, b], 'a');
+      assertEqual(a.completed, false);
+      assertEqual(result[1] === b, true);
+    });
+
+    // ===== deleteTodo =====
+
+    test('deleteTodo: 대상만 제거한다', () => {
+      const result = deleteTodo([makeTodo({ id: 'a' }), makeTodo({ id: 'b' })], 'a');
+      assertEqual(result.map((t) => t.id), ['b']);
+    });
+
+    test('deleteTodo: 원본 배열을 변경하지 않는다', () => {
+      const todos = [makeTodo({ id: 'a' })];
+      deleteTodo(todos, 'a');
+      assertEqual(todos.length, 1);
+    });
+
+    // ===== clearCompleted =====
+
+    test('clearCompleted: 완료 항목만 제거한다', () => {
+      const result = clearCompleted([
+        makeTodo({ id: 'a', completed: true }),
+        makeTodo({ id: 'b', completed: false }),
+        makeTodo({ id: 'c', completed: true }),
+      ]);
+      assertEqual(result.map((t) => t.id), ['b']);
+    });
+
+    test('clearCompleted: 원본 배열을 변경하지 않는다', () => {
+      const todos = [makeTodo({ id: 'a', completed: true })];
+      clearCompleted(todos);
+      assertEqual(todos.length, 1);
+    });
+
+    // ===== getProgress =====
+
+    test('getProgress: 할 일이 0개면 모두 0%다', () => {
+      assertEqual(getProgress([]), {
+        overall: { done: 0, total: 0, percent: 0 },
+        byCategory: {
+          work: { done: 0, total: 0, percent: 0 },
+          personal: { done: 0, total: 0, percent: 0 },
+          study: { done: 0, total: 0, percent: 0 },
+        },
+      });
+    });
+
+    test('getProgress: 전체 완료 수와 퍼센트를 계산한다', () => {
+      const result = getProgress([
+        makeTodo({ id: 'a', completed: true }),
+        makeTodo({ id: 'b', completed: false }),
+        makeTodo({ id: 'c', completed: true }),
+        makeTodo({ id: 'd', completed: false }),
+      ]);
+      assertEqual(result.overall, { done: 2, total: 4, percent: 50 });
+    });
+
+    test('getProgress: 퍼센트를 반올림한다 (2/3 → 67)', () => {
+      const result = getProgress([
+        makeTodo({ id: 'a', completed: true }),
+        makeTodo({ id: 'b', completed: true }),
+        makeTodo({ id: 'c', completed: false }),
+      ]);
+      assertEqual(result.overall.percent, 67);
+    });
+
+    test('getProgress: 카테고리별로 따로 집계한다', () => {
+      const result = getProgress([
+        makeTodo({ id: 'a', category: 'work', completed: true }),
+        makeTodo({ id: 'b', category: 'work', completed: false }),
+        makeTodo({ id: 'c', category: 'study', completed: true }),
+      ]);
+      assertEqual(result.byCategory.work, { done: 1, total: 2, percent: 50 });
+      assertEqual(result.byCategory.personal, { done: 0, total: 0, percent: 0 });
+      assertEqual(result.byCategory.study, { done: 1, total: 1, percent: 100 });
+    });
+
+    // ===== getVisibleTodos =====
+
+    const sample = [
+      makeTodo({ id: 'w-late', category: 'work', createdAt: '2026-10-02T11:00:00.000Z' }),
+      makeTodo({ id: 'p-done', category: 'personal', completed: true, createdAt: '2026-10-02T08:00:00.000Z' }),
+      makeTodo({ id: 'w-early', category: 'work', createdAt: '2026-10-02T09:00:00.000Z' }),
+      makeTodo({ id: 's-open', category: 'study', createdAt: '2026-10-02T10:00:00.000Z' }),
+      makeTodo({ id: 'w-done', category: 'work', completed: true, createdAt: '2026-10-02T07:00:00.000Z' }),
+    ];
+
+    test('getVisibleTodos: "all"이면 미완료 → 완료, 각 그룹은 생성 순으로 정렬한다', () => {
+      assertEqual(getVisibleTodos(sample, 'all').map((t) => t.id), ['w-early', 's-open', 'w-late', 'w-done', 'p-done']);
+    });
+
+    test('getVisibleTodos: 카테고리 필터면 그 카테고리만 정렬해 반환한다', () => {
+      assertEqual(getVisibleTodos(sample, 'work').map((t) => t.id), ['w-early', 'w-late', 'w-done']);
+    });
+
+    test('getVisibleTodos: 해당 카테고리 항목이 없으면 빈 배열을 반환한다', () => {
+      assertEqual(getVisibleTodos([makeTodo({ category: 'work' })], 'study'), []);
+    });
+
+    test('getVisibleTodos: 원본 배열의 순서를 바꾸지 않는다', () => {
+      const before = sample.map((t) => t.id);
+      getVisibleTodos(sample, 'all');
+      assertEqual(sample.map((t) => t.id), before);
+    });
+
     // ===== 결과 출력 =====
 
     const list = document.getElementById('results');
